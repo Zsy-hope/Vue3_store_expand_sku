@@ -17,6 +17,8 @@
 <script setup>
   import { onMounted, ref } from 'vue'
   import axios from 'axios'
+  import subsetAlgorithm from './subset-algorithm'
+
   // 商品数据
   const goods = ref({})
   const getGoods = async () => {
@@ -24,6 +26,9 @@
     // 1369155859933827074 更新之后有无库存项（蓝色-20cm-中国）
     const res = await axios.get('http://pcapi-xiaotuxian-front-devtest.itheima.net/goods?id=1369155859933827074')
     goods.value = res.data.result
+    console.log(goods.value)
+    const pushMap = getPathMap(goods.value)
+    console.log(pushMap)
   }
   onMounted(() => getGoods())
 
@@ -42,6 +47,37 @@
       })
       val.selected = true
     }
+  }
+
+  //生成有效路径字典对象
+  const getPathMap = (goods) => {
+    const pushMap = {}
+    //1.根据skus字段生成有效的sku数组   获取所有库存大于0的组合
+    const effectiveSkus = goods.skus.filter((sku) => sku.inventory > 0)
+    // console.log(effectiveSkus)
+
+    //2.根据有效的sku使用算法(子集算法) 获取子集算法
+    //[1,2] => [[1],[2],[1,2]]
+    effectiveSkus.forEach((sku) => {
+      //2.1获取匹配的valueName组成的数组 生成包含各个组合的大数组
+      const seletedValArr = sku.specs.map((val) => val.valueName)
+      // console.log(seletedValArr)
+      //2.2使用子集算法拆解大数组
+      const valueArrSubSet = subsetAlgorithm(seletedValArr)
+      // console.log(valueArrSubSet)
+      //3.生成最终的路径字典对象
+      valueArrSubSet.forEach((arr) => {
+        //生成键值对key
+        //join   ['黑色','中国'] => '黑色-中国'
+        const key = arr.join('-')
+        if (pushMap[key]) {
+          pushMap[key].push(sku.id)
+        } else {
+          pushMap[key] = [sku.id]
+        }
+      })
+    })
+    return pushMap
   }
 </script>
 
