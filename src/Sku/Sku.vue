@@ -27,14 +27,16 @@
 
   // 商品数据
   const goods = ref({})
+  let pathMap = {}
   const getGoods = async () => {
     // 1135076  初始化就有无库存的规格
     // 1369155859933827074 更新之后有无库存项（蓝色-20cm-中国）
-    const res = await axios.get('http://pcapi-xiaotuxian-front-devtest.itheima.net/goods?id=1135076')
+    const res = await axios.get('http://pcapi-xiaotuxian-front-devtest.itheima.net/goods?id=1369155859933827074')
     goods.value = res.data.result
     console.log(goods.value)
-    const pathMap = getPathMap(goods.value)
+    pathMap = getPathMap(goods.value)
     console.log(pathMap)
+    //初始化禁用状态
     initDisabledStatus(goods.value.specs, pathMap)
   }
   onMounted(() => getGoods())
@@ -57,11 +59,13 @@
       })
       val.selected = true
     }
+
+    //更新禁用状态
+    updateDisabledState(goods.value.specs, pathMap)
   }
 
   //生成有效路径字典对象
   const getPathMap = (goods) => {
-    const pathMap = {}
     //1.根据skus字段生成有效的sku数组   获取所有库存大于0的组合
     const effectiveSkus = goods.skus.filter((sku) => sku.inventory > 0)
     // console.log(effectiveSkus)
@@ -95,6 +99,36 @@
     specs.forEach((specs) => {
       specs.values.forEach((val) => {
         if (pathMap[val.name]) {
+          val.disabled = false
+        } else {
+          val.disabled = true
+        }
+      })
+    })
+  }
+
+  //获取选中项的匹配数组
+  const getSelectedValues = (specs) => {
+    const arr = []
+    specs.forEach((spec) => {
+      //找到values中selected为true的项，添加到数组中对应的位置
+      const selectedVal = spec.values.find((item) => item.selected)
+      arr.push(selectedVal ? selectedVal.name : undefined)
+    })
+    return arr
+  }
+
+  //切换时更新禁用状态
+  const updateDisabledState = (specs, pathMap) => {
+    // 约定：每一个按钮的状态由自身的disabled进行控制
+    specs.forEach((spec, index) => {
+      const selectedValues = getSelectedValues(specs)
+      console.log(spec)
+      //每次点完一个 就进行判断
+      spec.values.forEach((val) => {
+        selectedValues[index] = val.name
+        const key = selectedValues.filter((value) => value).join('-')
+        if (pathMap[key]) {
           val.disabled = false
         } else {
           val.disabled = true
