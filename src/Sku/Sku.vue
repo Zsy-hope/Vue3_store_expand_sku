@@ -62,6 +62,23 @@
 
     //更新禁用状态
     updateDisabledState(goods.value.specs, pathMap)
+
+    //产出SKU对象数据
+    //找到返回下标值 找不到返回-1
+    const index = getSelectedValues(goods.value.specs).findIndex((item) => item === undefined)
+    if (index > -1) {
+      console.log('找到了，当前信息不完整')
+    } else {
+      console.log('当前信息完整')
+      //获取sku对象数据
+      const key = getSelectedValues(goods.value.specs).join('-')
+      // 根据key获取skuids
+      const skuIds = pathMap[key]
+      // 根据skuIds作为匹配项去goods.value.skus数组中找
+      const skuObj = goods.value.skus.find((item) => item.id === skuIds[0])
+      //有效sku  路径唯一
+      console.log('sku对象为', skuObj)
+    }
   }
 
   //生成有效路径字典对象
@@ -118,15 +135,16 @@
     return arr
   }
 
-  //切换时更新禁用状态
+  //切换时更新禁用状态   复杂
   const updateDisabledState = (specs, pathMap) => {
     // 约定：每一个按钮的状态由自身的disabled进行控制
     specs.forEach((spec, index) => {
       const selectedValues = getSelectedValues(specs)
-      console.log(spec)
+      // console.log(selectedValues)
       //每次点完一个 就进行判断
       spec.values.forEach((val) => {
         selectedValues[index] = val.name
+        // console.log(selectedValues)
         const key = selectedValues.filter((value) => value).join('-')
         if (pathMap[key]) {
           val.disabled = false
