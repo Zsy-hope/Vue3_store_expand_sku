@@ -5,9 +5,15 @@
       <dd>
         <template v-for="val in item.values" :key="val.name">
           <!-- 图片类型规格 -->
-          <img :class="{ selected: val.selected }" @click="changeSelectedStatus(item, val)" v-if="val.picture" :src="val.picture" :title="val.name" />
+          <img
+            :class="{ selected: val.selected, disabled: val.disabled }"
+            @click="changeSelectedStatus(item, val)"
+            v-if="val.picture"
+            :src="val.picture"
+            :title="val.name"
+          />
           <!-- 文字类型规格 -->
-          <span :class="{ selected: val.selected }" @click="changeSelectedStatus(item, val)" v-else>{{ val.name }}</span>
+          <span :class="{ selected: val.selected, disabled: val.disabled }" @click="changeSelectedStatus(item, val)" v-else>{{ val.name }}</span>
         </template>
       </dd>
     </dl>
@@ -24,11 +30,12 @@
   const getGoods = async () => {
     // 1135076  初始化就有无库存的规格
     // 1369155859933827074 更新之后有无库存项（蓝色-20cm-中国）
-    const res = await axios.get('http://pcapi-xiaotuxian-front-devtest.itheima.net/goods?id=1369155859933827074')
+    const res = await axios.get('http://pcapi-xiaotuxian-front-devtest.itheima.net/goods?id=1135076')
     goods.value = res.data.result
     console.log(goods.value)
-    const pushMap = getPathMap(goods.value)
-    console.log(pushMap)
+    const pathMap = getPathMap(goods.value)
+    console.log(pathMap)
+    initDisabledStatus(goods.value.specs, pathMap)
   }
   onMounted(() => getGoods())
 
@@ -36,6 +43,9 @@
   const changeSelectedStatus = (item, val) => {
     //item：同一排对象
     //val：当前点击项
+
+    //库存不足时不可选中
+    if (val.disabled) return
 
     if (val.selected) {
       val.selected = false
@@ -51,7 +61,7 @@
 
   //生成有效路径字典对象
   const getPathMap = (goods) => {
-    const pushMap = {}
+    const pathMap = {}
     //1.根据skus字段生成有效的sku数组   获取所有库存大于0的组合
     const effectiveSkus = goods.skus.filter((sku) => sku.inventory > 0)
     // console.log(effectiveSkus)
@@ -70,14 +80,27 @@
         //生成键值对key
         //join   ['黑色','中国'] => '黑色-中国'
         const key = arr.join('-')
-        if (pushMap[key]) {
-          pushMap[key].push(sku.id)
+        if (pathMap[key]) {
+          pathMap[key].push(sku.id)
         } else {
-          pushMap[key] = [sku.id]
+          pathMap[key] = [sku.id]
         }
       })
     })
-    return pushMap
+    return pathMap
+  }
+
+  //初始化禁用状态
+  const initDisabledStatus = (specs, pathMap) => {
+    specs.forEach((specs) => {
+      specs.values.forEach((val) => {
+        if (pathMap[val.name]) {
+          val.disabled = false
+        } else {
+          val.disabled = true
+        }
+      })
+    })
   }
 </script>
 
